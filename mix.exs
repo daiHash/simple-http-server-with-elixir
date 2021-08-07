@@ -1,4 +1,4 @@
-defmodule SimpleHttpServerWithElixir.MixProject do
+defmodule HttpServer.MixProject do
   use Mix.Project
 
   def project do
