@@ -3,16 +3,54 @@ defmodule HttpServer do
   Documentation for `HttpServer`.
   """
 
-  @doc """
-  Hello world.
+  require Logger
 
-  ## Examples
+  def accept(port) do
+    # The options below mean:
+    #
+    # 1. `:binary` - receives data as binaries (instead of lists)
+    # 2. `packet: :line` - receives data line by line
+    # 3. `active: false` - blocks on `:gen_tcp.recv/2` until data is available
+    # 4. `reuseaddr: true` - allows us to reuse the address if the listener crashes
+    #
+    {:ok, socket} =
+      :gen_tcp.listen(port, [:binary, packet: :line, active: false, reuseaddr: true])
 
-      iex> HttpServer.hello()
-      :world
+    Logger.info("Accepting connections on port #{port}")
+    loop_acceptor(socket)
+  end
 
-  """
-  def hello do
-    :world
+  defp loop_acceptor(socket) do
+    {:ok, client} = :gen_tcp.accept(socket)
+    serve(client)
+    loop_acceptor(socket)
+  end
+
+  defp serve(socket) do
+    socket
+    |> read_line
+    |> write_response(socket)
+  end
+
+  defp read_line(socket) do
+    {:ok, data} = :gen_tcp.recv(socket, 0)
+    data
+  end
+
+  defp write_response(response, socket) do
+    # MEMO: This is just for testing purposes
+    # Change later when implementing routes
+    body = "Hello world! The time is #{Time.to_string(Time.utc_now())}"
+
+    message = """
+    HTTP/1.1 200\r
+    Content-Type: text/html\r
+    Content-Length: #{byte_size(body)}\r
+    \r
+    #{body} - #{response}
+    """
+
+    :gen_tcp.send(socket, message)
+    :gen_tcp.close(socket)
   end
 end
